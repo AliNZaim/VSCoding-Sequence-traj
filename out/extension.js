@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.activate = void 0;
+exports.activate = activate;
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const node_fetch_1 = require("node-fetch");
@@ -40,7 +40,6 @@ async function activate(context) {
     context.subscriptions.push(activateFromFolder);
     context.subscriptions.push(ESMFold);
 }
-exports.activate = activate;
 // this method is called when your extension is deactivated
 // export function deactivate() {}
 async function showInputBox() {
