@@ -6,27 +6,25 @@ exports.activate = activate;
 const node_fetch_1 = require("node-fetch");
 const vscode = require("vscode");
 const ProteinViewerPanel_1 = require("./panels/ProteinViewerPanel");
-const path = require('node:path');
+const glob = require("glob");
 async function activate(context) {
-    const helloCommand = vscode.commands.registerCommand("protein-viewer.start", () => {
+    const helloCommand = vscode.commands.registerCommand('protein-viewer.start', () => {
         showInputBox().then((accession) => {
             console.log(accession);
             ProteinViewerPanel_1.ProteinViewerPanel.render(context.extensionUri, accession);
         });
     });
-    const activateFromFiles = vscode.commands.registerCommand("protein-viewer.activateFromFiles", (file_uri, selectedFiles) => {
+    const activateFromFiles = vscode.commands.registerCommand('protein-viewer.activateFromFiles', (file_uri, selectedFiles) => {
         console.log(file_uri);
         console.log(selectedFiles);
         ProteinViewerPanel_1.ProteinViewerPanel.renderFromFiles(context.extensionUri, selectedFiles);
     });
-    const activateFromFolder = vscode.commands.registerCommand("protein-viewer.activateFromFolder", (folder_uri) => {
-        vscode.workspace.findFiles(`${vscode.workspace.asRelativePath(folder_uri)}/*.pdb`).then((files_uri) => {
-            ProteinViewerPanel_1.ProteinViewerPanel.renderFromFiles(context.extensionUri, files_uri);
-        });
+    const activateFromFolder = vscode.commands.registerCommand('protein-viewer.activateFromFolder', (uri) => {
+        handleFolderActivation(context, uri);
     });
-    const ESMFold = vscode.commands.registerCommand("protein-viewer.ESMFold", () => {
+    const ESMFold = vscode.commands.registerCommand('protein-viewer.ESMFold', () => {
         showSequenceInputBox().then((sequence) => {
-            const uri = getfold(sequence).then((pdb) => {
+            getfold(sequence).then((pdb) => {
                 writeFoldToFile(pdb).then(async (file_uri) => {
                     console.log(file_uri);
                     ProteinViewerPanel_1.ProteinViewerPanel.renderFromFiles(context.extensionUri, [vscode.Uri.file(file_uri)]);
@@ -58,8 +56,8 @@ async function showSequenceInputBox() {
 }
 async function writeFoldToFile(file_contents) {
     const time = new Date().getTime();
-    const fname = "/esmfold_" + time.toString() + ".pdb";
-    const setting = vscode.Uri.parse("untitled:" + vscode.workspace.rootPath + fname);
+    const fname = '/esmfold_' + time.toString() + '.pdb';
+    const setting = vscode.Uri.parse('untitled:' + vscode.workspace.rootPath + fname);
     await vscode.workspace.openTextDocument(setting).then((a) => {
         vscode.window.showTextDocument(a, 1, false).then(e => {
             e.edit(edit => {
@@ -68,12 +66,12 @@ async function writeFoldToFile(file_contents) {
             });
         });
     });
-    console.log("wrote to test file.");
+    console.log('wrote to test file.');
     console.log(setting);
     return setting.fsPath;
 }
 async function getfold(sequence) {
-    const url = "https://api.esmatlas.com/foldSequence/v1/pdb/";
+    const url = 'https://api.esmatlas.com/foldSequence/v1/pdb/';
     console.log(sequence);
     const response = await (0, node_fetch_1.default)(url, {
         method: 'POST',
@@ -81,5 +79,35 @@ async function getfold(sequence) {
     });
     const body = await response.text();
     return body;
+}
+// Update the function signature to accept context parameter
+async function handleFolderActivation(context, uri) {
+    // Define the file extensions we support
+    const supportedExtensions = [
+        '.pdb', '.pdb.gz', '.PDB',
+        '.mol2', '.MOL2',
+        '.sdf', '.SDF',
+        '.mmCIF', '.mmcif', '.MMCIF',
+        '.mol', '.MOL',
+        '.xyz', '.XYZ',
+        '.ent', '.ENT',
+        '.pdbqt', '.PDBQT',
+        '.cif', '.CIF', '.cif.gz',
+        '.mcif', '.MCIF',
+        '.gro', '.GRO',
+        '.dcd', '.xtc'
+    ];
+    // Create glob pattern for supported files
+    const pattern = `${uri.fsPath}/**/*@(${supportedExtensions.join('|')})`;
+    // Find all matching files in the folder
+    const files = glob.sync(pattern);
+    if (files.length === 0) {
+        vscode.window.showInformationMessage('No supported structure files found in folder');
+        return;
+    }
+    // Convert file paths to URIs
+    const fileUris = files.map(file => vscode.Uri.file(file));
+    // Now we have access to context.extensionUri
+    ProteinViewerPanel_1.ProteinViewerPanel.renderFromFiles(context.extensionUri, fileUris);
 }
 //# sourceMappingURL=extension.js.map

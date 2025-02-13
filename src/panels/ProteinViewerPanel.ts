@@ -1,67 +1,69 @@
-import * as vscode from "vscode";
+import * as vscode from 'vscode';
 
 export class ProteinViewerPanel {
-  public static currentPanel: ProteinViewerPanel | undefined;
-  private readonly _panel: vscode.WebviewPanel;
-  private _disposables: vscode.Disposable[] = [];
+    public static currentPanel: ProteinViewerPanel | undefined;
+    private readonly _panel: vscode.WebviewPanel;
+    private _disposables: vscode.Disposable[] = [];
 
-  private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, accession: string | undefined, clickedFiles: vscode.Uri[] | undefined) {
-    this._panel = panel;
-    this._panel.onDidDispose(this.dispose, null, this._disposables);
-    if (accession != undefined) {
-      this._panel.webview.html = this._getWebviewContent(panel.webview, extensionUri, accession);
-    };
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, accession: string | undefined, clickedFiles: vscode.Uri[] | undefined) {
+        this._panel = panel;
+        this._panel.onDidDispose(this.dispose, null, this._disposables);
+        if (accession != undefined) {
+            this._panel.webview.html = this._getWebviewContent(panel.webview, extensionUri, accession);
+        }
 
-    if (clickedFiles != undefined) {
-      this._panel.webview.html = this._getWebviewContentForFiles(panel.webview, extensionUri, clickedFiles);
-    };
+        if (clickedFiles != undefined) {
+            this._panel.webview.html = this._getWebviewContentForFiles(panel.webview, extensionUri, clickedFiles);
+        }
 
-  }
-
-  public static render(extensionUri: vscode.Uri, accession: string | undefined) {
-    const windowName = "Protein Viewer - " + accession;
-    const panel = vscode.window.createWebviewPanel("proteinviewer", windowName, vscode.ViewColumn.One, {
-      enableScripts: true,
-      retainContextWhenHidden: true
-    });
-    if (accession?.length === 4) {
-      var loadCommand = `viewer.loadPdb('${accession}');`
-    } else {
-      var loadCommand = `viewer.loadAlphaFoldDb('${accession}');`
     }
-    ProteinViewerPanel.currentPanel = new ProteinViewerPanel(panel, extensionUri, loadCommand, undefined);
-  }
 
-  public static renderFromFiles(extensionUri: vscode.Uri, clickedFiles: vscode.Uri[]) {
-    const fnames = clickedFiles.map((clickedFile) => clickedFile.path.split('/').pop());
-    const windowName = "Protein Viewer - " + fnames.join(" - ");
-    const panel = vscode.window.createWebviewPanel("proteinviewer", windowName, vscode.ViewColumn.One, {
-      enableScripts: true,
-      retainContextWhenHidden: true
-    });
-
-    ProteinViewerPanel.currentPanel = new ProteinViewerPanel(panel, extensionUri, undefined, clickedFiles);
-  }
-
-  public dispose() {
-    ProteinViewerPanel.currentPanel = undefined;
-
-    this._panel.dispose();
-
-    while (this._disposables.length) {
-      const disposable = this._disposables.pop();
-      if (disposable) {
-        disposable.dispose();
-      }
+    public static render(extensionUri: vscode.Uri, accession: string | undefined) {
+        const windowName = 'Protein Viewer - ' + accession;
+        const panel = vscode.window.createWebviewPanel('proteinviewer', windowName, vscode.ViewColumn.One, {
+            enableScripts: true,
+            retainContextWhenHidden: true
+        });
+        
+        let loadCommand = '';
+        if (accession && accession.length === 4) {
+            loadCommand = `viewer.loadPdb('${accession}');`;
+        } else {
+            loadCommand = `viewer.loadAlphaFoldDb('${accession}');`;
+        }
+        
+        ProteinViewerPanel.currentPanel = new ProteinViewerPanel(panel, extensionUri, loadCommand, undefined);
     }
-  }
 
-  private _getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri, accession: string | undefined) {
+    public static renderFromFiles(extensionUri: vscode.Uri, clickedFiles: vscode.Uri[]) {
+        const fnames = clickedFiles.map((clickedFile) => clickedFile.path.split('/').pop());
+        const windowName = 'Protein Viewer - ' + fnames.join(' - ');
+        const panel = vscode.window.createWebviewPanel('proteinviewer', windowName, vscode.ViewColumn.One, {
+            enableScripts: true,
+            retainContextWhenHidden: true
+        });
 
-    const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'node_modules', 'molstar', 'build/viewer', 'molstar.css'));
-    const jsUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'node_modules', 'molstar', 'build/viewer', 'molstar.js'));
-    // Tip: Install the es6-string-html VS Code extension to enable code highlighting below
-    return /*html*/ `
+        ProteinViewerPanel.currentPanel = new ProteinViewerPanel(panel, extensionUri, undefined, clickedFiles);
+    }
+
+    public dispose() {
+        ProteinViewerPanel.currentPanel = undefined;
+
+        this._panel.dispose();
+
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+
+    private _getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri, accession: string | undefined) {
+        const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'node_modules', 'molstar', 'build/viewer', 'molstar.css'));
+        const jsUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'node_modules', 'molstar', 'build/viewer', 'molstar.js'));
+        // Tip: Install the es6-string-html VS Code extension to enable code highlighting below
+        return /*html*/ `
     <!DOCTYPE html>
     <html lang="en">
       <head>
@@ -171,53 +173,52 @@ export class ProteinViewerPanel {
       </body>
     </html>
     `;
-  }
+    }
 
-  private _getWebviewContentForFiles(webview: vscode.Webview, extensionUri: vscode.Uri, clickedFiles: vscode.Uri[]) {
-    const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'node_modules', 'molstar', 'build/viewer', 'molstar.css'));
-    const jsUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'node_modules', 'molstar', 'build/viewer', 'molstar.js'));
-    const fileUris = clickedFiles.map(file => webview.asWebviewUri(file));
-    const extensions = clickedFiles.map(file => file.path.split('.').pop()?.toLowerCase());
-    const trajExtensions = ['dcd', 'xtc'];
+    private _getWebviewContentForFiles(webview: vscode.Webview, extensionUri: vscode.Uri, clickedFiles: vscode.Uri[]) {
+        const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'node_modules', 'molstar', 'build/viewer', 'molstar.css'));
+        const jsUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'node_modules', 'molstar', 'build/viewer', 'molstar.js'));
+        const fileUris = clickedFiles.map(file => webview.asWebviewUri(file));
+        const extensions = clickedFiles.map(file => file.path.split('.').pop()?.toLowerCase());
+        const trajExtensions = ['dcd', 'xtc'];
 
-    let fileLoadCommand = "";
-    // --- If exactly two files are selected and one is a trajectory file, use loadTrajectory ---
-    if (
-      clickedFiles.length === 2 &&
-      (
-        (trajExtensions.includes(extensions[0]!) && !trajExtensions.includes(extensions[1]!)) ||
-        (trajExtensions.includes(extensions[1]!) && !trajExtensions.includes(extensions[0]!))
-      )
-    ) {
-      // Determine which file is trajectory and which is the model.
-      const trajIndex = trajExtensions.includes(extensions[0]!) ? 0 : 1;
-      const modelIndex = trajIndex === 0 ? 1 : 0;
+        let fileLoadCommand = '';
+        // --- If exactly two files are selected and one is a trajectory file, use loadTrajectory ---
+        if (clickedFiles.length === 2 && extensions[0] && extensions[1]) {
+            if (
+                (trajExtensions.includes(extensions[0]) && !trajExtensions.includes(extensions[1])) ||
+                (trajExtensions.includes(extensions[1]) && !trajExtensions.includes(extensions[0]))
+            ) {
+                // Determine which file is trajectory and which is the model.
+                const trajIndex = trajExtensions.includes(extensions[0]) ? 0 : 1;
+                const modelIndex = trajIndex === 0 ? 1 : 0;
 
-      // Use the trajectory file's extension as coordinate format.
-      const coordFormat = extensions[trajIndex];
-      // Normalize model file extension if necessary.
-      let modelFormat = extensions[modelIndex];
-      if (modelFormat && ['cif', 'mmcif', 'mccif'].includes(modelFormat)) {
-        modelFormat = 'mmcif';
-      }
-      // Build the load command using Mol*'s loadTrajectory API.
-      fileLoadCommand = `
+                // Use the trajectory file's extension as coordinate format.
+                const coordFormat = extensions[trajIndex];
+                // Normalize model file extension if necessary.
+                let modelFormat = extensions[modelIndex];
+                if (modelFormat && ['cif', 'mmcif', 'mccif'].includes(modelFormat)) {
+                    modelFormat = 'mmcif';
+                }
+                // Build the load command using Mol*'s loadTrajectory API.
+                fileLoadCommand = `
         viewer.loadTrajectory({
           model: { kind: 'model-url', url: '${fileUris[modelIndex]}', format: '${modelFormat}' },
           coordinates: { kind: 'coordinates-url', url: '${fileUris[trajIndex]}', format: '${coordFormat}', isBinary: true },
           preset: 'default'
         });
       `;
-    } else {
-      const commands: string[] = [];
-      for (let i = 0; i < fileUris.length; i++) {
-        let ext = extensions[i] || "";
-        if (['cif', 'mmcif', 'mccif'].includes(ext)) { ext = 'mmcif'; }
-        commands.push(`viewer.loadStructureFromUrl('${fileUris[i]}', '${ext}');`);
-      }
-      fileLoadCommand = commands.join("\n");
-    }
-    return /*html*/ `
+            }
+        } else {
+            const commands: string[] = [];
+            for (let i = 0; i < fileUris.length; i++) {
+                let ext = extensions[i] || '';
+                if (['cif', 'mmcif', 'mccif'].includes(ext)) { ext = 'mmcif'; }
+                commands.push(`viewer.loadStructureFromUrl('${fileUris[i]}', '${ext}');`);
+            }
+            fileLoadCommand = commands.join('\n');
+        }
+        return /*html*/ `
     <!DOCTYPE html>
     <html lang="en">
       <head>
@@ -314,5 +315,5 @@ export class ProteinViewerPanel {
         <!-- __MOLSTAR_ANALYTICS__ -->
       </body>
     </html>`;
-  }
+    }
 }

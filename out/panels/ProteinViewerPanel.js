@@ -10,30 +10,29 @@ class ProteinViewerPanel {
         if (accession != undefined) {
             this._panel.webview.html = this._getWebviewContent(panel.webview, extensionUri, accession);
         }
-        ;
         if (clickedFiles != undefined) {
             this._panel.webview.html = this._getWebviewContentForFiles(panel.webview, extensionUri, clickedFiles);
         }
-        ;
     }
     static render(extensionUri, accession) {
-        const windowName = "Protein Viewer - " + accession;
-        const panel = vscode.window.createWebviewPanel("proteinviewer", windowName, vscode.ViewColumn.One, {
+        const windowName = 'Protein Viewer - ' + accession;
+        const panel = vscode.window.createWebviewPanel('proteinviewer', windowName, vscode.ViewColumn.One, {
             enableScripts: true,
             retainContextWhenHidden: true
         });
-        if (accession?.length === 4) {
-            var loadCommand = `viewer.loadPdb('${accession}');`;
+        let loadCommand = '';
+        if (accession && accession.length === 4) {
+            loadCommand = `viewer.loadPdb('${accession}');`;
         }
         else {
-            var loadCommand = `viewer.loadAlphaFoldDb('${accession}');`;
+            loadCommand = `viewer.loadAlphaFoldDb('${accession}');`;
         }
         ProteinViewerPanel.currentPanel = new ProteinViewerPanel(panel, extensionUri, loadCommand, undefined);
     }
     static renderFromFiles(extensionUri, clickedFiles) {
         const fnames = clickedFiles.map((clickedFile) => clickedFile.path.split('/').pop());
-        const windowName = "Protein Viewer - " + fnames.join(" - ");
-        const panel = vscode.window.createWebviewPanel("proteinviewer", windowName, vscode.ViewColumn.One, {
+        const windowName = 'Protein Viewer - ' + fnames.join(' - ');
+        const panel = vscode.window.createWebviewPanel('proteinviewer', windowName, vscode.ViewColumn.One, {
             enableScripts: true,
             retainContextWhenHidden: true
         });
@@ -164,53 +163,48 @@ class ProteinViewerPanel {
     </html>
     `;
     }
-    // --- Updated file-based webview content ---
     _getWebviewContentForFiles(webview, extensionUri, clickedFiles) {
         const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'node_modules', 'molstar', 'build/viewer', 'molstar.css'));
         const jsUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'node_modules', 'molstar', 'build/viewer', 'molstar.js'));
-        // Convert clicked file URIs for use in the webview.
         const fileUris = clickedFiles.map(file => webview.asWebviewUri(file));
-        // Extract file extensions (in lower-case).
         const extensions = clickedFiles.map(file => file.path.split('.').pop()?.toLowerCase());
-        // Define the trajectory file extensions.
         const trajExtensions = ['dcd', 'xtc'];
-        let fileLoadCommand = "";
+        let fileLoadCommand = '';
         // --- If exactly two files are selected and one is a trajectory file, use loadTrajectory ---
-        if (clickedFiles.length === 2 &&
-            ((trajExtensions.includes(extensions[0]) && !trajExtensions.includes(extensions[1])) ||
-                (trajExtensions.includes(extensions[1]) && !trajExtensions.includes(extensions[0])))) {
-            // Determine which file is trajectory and which is the model.
-            const trajIndex = trajExtensions.includes(extensions[0]) ? 0 : 1;
-            const modelIndex = trajIndex === 0 ? 1 : 0;
-            // Use the trajectory file's extension as coordinate format.
-            const coordFormat = extensions[trajIndex];
-            // Normalize model file extension if necessary.
-            let modelFormat = extensions[modelIndex];
-            if (modelFormat && ['cif', 'mmcif', 'mccif'].includes(modelFormat)) {
-                modelFormat = 'mmcif';
-            }
-            // Build the load command using Mol*'s loadTrajectory API.
-            fileLoadCommand = `
+        if (clickedFiles.length === 2 && extensions[0] && extensions[1]) {
+            if ((trajExtensions.includes(extensions[0]) && !trajExtensions.includes(extensions[1])) ||
+                (trajExtensions.includes(extensions[1]) && !trajExtensions.includes(extensions[0]))) {
+                // Determine which file is trajectory and which is the model.
+                const trajIndex = trajExtensions.includes(extensions[0]) ? 0 : 1;
+                const modelIndex = trajIndex === 0 ? 1 : 0;
+                // Use the trajectory file's extension as coordinate format.
+                const coordFormat = extensions[trajIndex];
+                // Normalize model file extension if necessary.
+                let modelFormat = extensions[modelIndex];
+                if (modelFormat && ['cif', 'mmcif', 'mccif'].includes(modelFormat)) {
+                    modelFormat = 'mmcif';
+                }
+                // Build the load command using Mol*'s loadTrajectory API.
+                fileLoadCommand = `
         viewer.loadTrajectory({
           model: { kind: 'model-url', url: '${fileUris[modelIndex]}', format: '${modelFormat}' },
           coordinates: { kind: 'coordinates-url', url: '${fileUris[trajIndex]}', format: '${coordFormat}', isBinary: true },
           preset: 'default'
         });
       `;
+            }
         }
         else {
-            // --- Fallback: iterate over all files (preserving the original iterative handler) ---
             const commands = [];
             for (let i = 0; i < fileUris.length; i++) {
-                let ext = extensions[i] || "";
+                let ext = extensions[i] || '';
                 if (['cif', 'mmcif', 'mccif'].includes(ext)) {
                     ext = 'mmcif';
                 }
                 commands.push(`viewer.loadStructureFromUrl('${fileUris[i]}', '${ext}');`);
             }
-            fileLoadCommand = commands.join("\n");
+            fileLoadCommand = commands.join('\n');
         }
-        // Build the complete HTML, preserving the original URL parameter logic.
         return /*html*/ `
     <!DOCTYPE html>
     <html lang="en">
