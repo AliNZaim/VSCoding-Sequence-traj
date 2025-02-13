@@ -1,6 +1,6 @@
 {
-  "name": "protein-viewer-traj",
-  "displayName": "Protein Viewer-traj",
+  "name": "protein-viewer",
+  "displayName": "Protein Viewer",
   "description": "Visualise 3D biological structures in the editor",
   "version": "0.1.2",
   "publisher": "ArianJamasb",
@@ -73,7 +73,7 @@
     "menus": {
       "explorer/context": [
         {
-          "when": "resourceExtname == .pdb || resourceExtname == .pdb.gz || resourceExtname == .PDB || resourceExtname == .mol2 || resourceExtname == .MOL2 || resourceExtname == .sdf || resourceExtname == .SDF || resourceExtname == .mmCIF || resourceExtname == .mmcif || resourceExtname == .cif.gz || resourceExtname == .MMCIF || resourceExtname == .Mol || resourceExtname == .mol || resourceExtname == .MOL || resourceExtname == .xyz || resourceExtname == .XYZ || resourceExtname == .ent || resourceExtname == .ENT || resourceExtname == .pdbqt || resourceExtname == .PDBQT || resourceExtname == .cif || resourceExtname == .CIF || resourceExtname == .mcif || resourceExtname == .MCIF || resourceExtname == .gro || resourceExtname == .GRO || resourceExtname == .dcd || resourceExtname == .xtc",
+          "when": "resourceExtname == .pdb || resourceExtname == .pdb.gz || resourceExtname == .PDB || resourceExtname == .mol2 || resourceExtname == .MOL2 || resourceExtname == .sdf || resourceExtname == .SDF || resourceExtname == .mmCIF || resourceExtname == .mmcif || resourceExtname == .cif.gz || resourceExtname == .MMCIF || resourceExtname == .Mol || resourceExtname == .mol || resourceExtname == .MOL || resourceExtname == .xyz || resourceExtname == .XYZ || resourceExtname == .ent || resourceExtname == .ENT || resourceExtname == .pdbqt || resourceExtname == .PDBQT || resourceExtname == .cif || resourceExtname == .CIF || resourceExtname == .mcif || resourceExtname == .MCIF || resourceExtname == .gro || resourceExtname == .GRO || resourceExtname == .dcd || resourceExtname == .xtc || resourceExtname == .trr",
           "command": "protein-viewer.activateFromFiles",
           "group": "navigation"
         },

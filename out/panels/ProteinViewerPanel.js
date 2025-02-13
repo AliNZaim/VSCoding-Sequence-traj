@@ -168,7 +168,7 @@ class ProteinViewerPanel {
         const jsUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'node_modules', 'molstar', 'build/viewer', 'molstar.js'));
         const fileUris = clickedFiles.map(file => webview.asWebviewUri(file));
         const extensions = clickedFiles.map(file => file.path.split('.').pop()?.toLowerCase());
-        const trajExtensions = ['dcd', 'xtc'];
+        const trajExtensions = ['dcd', 'xtc', 'trr'];
         let fileLoadCommand = '';
         // --- If exactly two files are selected and one is a trajectory file, use loadTrajectory ---
         if (clickedFiles.length === 2 && extensions[0] && extensions[1]) {
@@ -184,7 +184,6 @@ class ProteinViewerPanel {
                 if (modelFormat && ['cif', 'mmcif', 'mccif'].includes(modelFormat)) {
                     modelFormat = 'mmcif';
                 }
-                // Build the load command using Mol*'s loadTrajectory API.
                 fileLoadCommand = `
         viewer.loadTrajectory({
           model: { kind: 'model-url', url: '${fileUris[modelIndex]}', format: '${modelFormat}' },

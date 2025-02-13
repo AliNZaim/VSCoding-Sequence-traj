@@ -24,11 +24,31 @@ async function activate(context) {
     });
     const ESMFold = vscode.commands.registerCommand('protein-viewer.ESMFold', () => {
         showSequenceInputBox().then((sequence) => {
+            if (!sequence) {
+                vscode.window.showErrorMessage('No sequence provided');
+                return;
+            }
+            vscode.window.showInformationMessage('Sending request to ESMFold...');
             getfold(sequence).then((pdb) => {
+                if (!pdb) {
+                    vscode.window.showErrorMessage('No PDB structure received from ESMFold');
+                    return;
+                }
+                console.log('Received PDB structure of length:', pdb.length);
                 writeFoldToFile(pdb).then(async (file_uri) => {
-                    console.log(file_uri);
-                    ProteinViewerPanel_1.ProteinViewerPanel.renderFromFiles(context.extensionUri, [vscode.Uri.file(file_uri)]);
+                    console.log('File saved at:', file_uri);
+                    try {
+                        await ProteinViewerPanel_1.ProteinViewerPanel.renderFromFiles(context.extensionUri, [vscode.Uri.file(file_uri)]);
+                        vscode.window.showInformationMessage('Structure prediction complete!');
+                    }
+                    catch (error) {
+                        vscode.window.showErrorMessage(`Failed to render structure: ${error}`);
+                    }
+                }).catch(error => {
+                    vscode.window.showErrorMessage(`Failed to save file: ${error}`);
                 });
+            }).catch(error => {
+                vscode.window.showErrorMessage(`ESMFold API error: ${error}`);
             });
         });
     });
@@ -55,30 +75,48 @@ async function showSequenceInputBox() {
     return sequence;
 }
 async function writeFoldToFile(file_contents) {
-    const time = new Date().getTime();
-    const fname = '/esmfold_' + time.toString() + '.pdb';
-    const setting = vscode.Uri.parse('untitled:' + vscode.workspace.rootPath + fname);
-    await vscode.workspace.openTextDocument(setting).then((a) => {
-        vscode.window.showTextDocument(a, 1, false).then(e => {
-            e.edit(edit => {
-                edit.insert(new vscode.Position(0, 0), file_contents);
-                a.save();
-            });
+    try {
+        const time = new Date().getTime();
+        const fname = '/esmfold_' + time.toString() + '.pdb';
+        console.log('Creating file:', fname);
+        console.log('Content length:', file_contents.length);
+        const setting = vscode.Uri.parse('untitled:' + vscode.workspace.rootPath + fname);
+        const doc = await vscode.workspace.openTextDocument(setting);
+        const editor = await vscode.window.showTextDocument(doc, 1, false);
+        await editor.edit(edit => {
+            edit.insert(new vscode.Position(0, 0), file_contents);
         });
-    });
-    console.log('wrote to test file.');
-    console.log(setting);
-    return setting.fsPath;
+        await doc.save();
+        console.log('File saved successfully');
+        return setting.fsPath;
+    }
+    catch (error) {
+        console.error('Error saving file:', error);
+        throw error;
+    }
 }
 async function getfold(sequence) {
     const url = 'https://api.esmatlas.com/foldSequence/v1/pdb/';
-    console.log(sequence);
-    const response = await (0, node_fetch_1.default)(url, {
-        method: 'POST',
-        body: sequence,
-    });
-    const body = await response.text();
-    return body;
+    console.log('Sending sequence to ESMFold:', sequence);
+    try {
+        const response = await (0, node_fetch_1.default)(url, {
+            method: 'POST',
+            body: sequence,
+            headers: {
+                'Content-Type': 'text/plain'
+            }
+        });
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        }
+        const body = await response.text();
+        console.log('Received response of length:', body.length);
+        return body;
+    }
+    catch (error) {
+        console.error('ESMFold API error:', error);
+        throw error;
+    }
 }
 // Update the function signature to accept context parameter
 async function handleFolderActivation(context, uri) {
